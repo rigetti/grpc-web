@@ -76,6 +76,7 @@ func (w *grpcWebResponse) prepareHeaders() {
 		replaceInKeys(http2.TrailerPrefix, ""),
 		replaceInVals("content-type", grpcContentType, w.contentType),
 		keyCase(http.CanonicalHeaderKey),
+		trimGrpcStatus(),
 	)
 	responseHeaderKeys := headerKeys(wh)
 	responseHeaderKeys = append(responseHeaderKeys, "grpc-status", "grpc-message")

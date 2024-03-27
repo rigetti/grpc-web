@@ -85,8 +85,8 @@ func trimGrpcStatus() copyOption {
 			func(k string, vv []string) (string, []string, bool) {
 				if strings.ToLower(k) == "grpc-status" {
 					vv2 := make([]string, 0, len(vv))
-					for i, v := range vv {
-						vv2[i] = strings.TrimSpace(v)
+					for _, v := range vv {
+						vv2 = append(vv2, strings.TrimSpace(v))
 					}
 					return k, vv2, true
 				}
