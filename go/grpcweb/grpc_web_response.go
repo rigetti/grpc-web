@@ -78,6 +78,7 @@ func (w *grpcWebResponse) prepareHeaders() {
 		keyCase(http.CanonicalHeaderKey),
 		trimGrpcStatus(),
 	)
+	wh.Set("grpc-status", strings.TrimSpace(wh.Get("grpc-status")))
 	responseHeaderKeys := headerKeys(wh)
 	responseHeaderKeys = append(responseHeaderKeys, "grpc-status", "grpc-message")
 	wh.Set(
@@ -118,6 +119,7 @@ func extractTrailingHeaders(src http.Header, flushed http.Header) http.Header {
 		keyCase(strings.ToLower),
 		trimGrpcStatus(),
 	)
+	th.Set("grpc-status", strings.TrimSpace(th.Get("grpc-status")))
 	return th
 }
 
