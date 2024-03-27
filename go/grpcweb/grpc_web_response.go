@@ -115,6 +115,7 @@ func extractTrailingHeaders(src http.Header, flushed http.Header) http.Header {
 		// "HTTP wire protocols" section in
 		// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md#protocol-differences-vs-grpc-over-http2
 		keyCase(strings.ToLower),
+		trimGrpcStatus(),
 	)
 	return th
 }
