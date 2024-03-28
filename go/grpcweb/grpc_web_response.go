@@ -76,9 +76,7 @@ func (w *grpcWebResponse) prepareHeaders() {
 		replaceInKeys(http2.TrailerPrefix, ""),
 		replaceInVals("content-type", grpcContentType, w.contentType),
 		keyCase(http.CanonicalHeaderKey),
-		trimGrpcStatus(),
 	)
-	wh.Set("grpc-status", strings.TrimSpace(wh.Get("grpc-status")))
 	responseHeaderKeys := headerKeys(wh)
 	responseHeaderKeys = append(responseHeaderKeys, "grpc-status", "grpc-message")
 	wh.Set(
@@ -99,10 +97,18 @@ func (w *grpcWebResponse) finishRequest(req *http.Request) {
 func (w *grpcWebResponse) copyTrailersToPayload() {
 	trailers := extractTrailingHeaders(w.headers, w.wrapped.Header())
 	trailerBuffer := new(bytes.Buffer)
-	trailers.Write(trailerBuffer)
 	trailerGrpcDataHeader := []byte{1 << 7, 0, 0, 0, 0} // MSB=1 indicates this is a trailer data frame.
 	binary.BigEndian.PutUint32(trailerGrpcDataHeader[1:5], uint32(trailerBuffer.Len()))
+
+	// first write the header for the trailer
 	w.wrapped.Write(trailerGrpcDataHeader)
+
+	// then manually write the grpc-status trailer, without extra whitespace,
+	// and remove it so it isn't written again by `.Write` with whitespace
+	// see https://github.com/golang/go/blob/master/src/net/http/header.go#L208
+	writeGrpcStatusTrailer(trailers, trailerBuffer)
+
+	trailers.Write(trailerBuffer)
 	w.wrapped.Write(trailerBuffer.Bytes())
 	flushWriter(w.wrapped)
 }
@@ -117,10 +123,20 @@ func extractTrailingHeaders(src http.Header, flushed http.Header) http.Header {
 		// "HTTP wire protocols" section in
 		// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md#protocol-differences-vs-grpc-over-http2
 		keyCase(strings.ToLower),
-		trimGrpcStatus(),
 	)
-	th.Set("grpc-status", strings.TrimSpace(th.Get("grpc-status")))
 	return th
+}
+
+// writeGrpcStatusTrailer explicitly writes the `grpc-status` header
+// instead of relying on `(http.Header).Write`, which automatically
+// pads with whitespace.
+// See https://github.com/golang/go/blob/master/src/net/http/header.go#L208
+func writeGrpcStatusTrailer(src http.Header, buf *bytes.Buffer) {
+	const headerName = "grpc-status"
+	if status := strings.TrimSpace(src.Get(headerName)); status != "" {
+		src.Del(headerName)
+		buf.WriteString(headerName + ":" + status + "\r\n")
+	}
 }
 
 // An http.ResponseWriter wrapper that writes base64-encoded payloads. You must call Flush()

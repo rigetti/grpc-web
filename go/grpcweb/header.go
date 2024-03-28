@@ -77,25 +77,6 @@ func replaceInKeys(old, new string) copyOption {
 	}
 }
 
-// trimGrpcStatus removes the whitespace from the value in the grpc-status header.
-func trimGrpcStatus() copyOption {
-	return func(opts *copyOptions) {
-		opts.replacers = append(
-			opts.replacers,
-			func(k string, vv []string) (string, []string, bool) {
-				if strings.ToLower(k) == "grpc-status" {
-					vv2 := make([]string, 0, len(vv))
-					for _, v := range vv {
-						vv2 = append(vv2, strings.TrimSpace(v))
-					}
-					return k, vv2, true
-				}
-				return "", nil, false
-			},
-		)
-	}
-}
-
 // keyCase returns an option to unconditionally modify the case of the
 // destination header keys with function fn. Typically fn can be
 // strings.ToLower, strings.ToUpper, http.CanonicalHeaderKey
