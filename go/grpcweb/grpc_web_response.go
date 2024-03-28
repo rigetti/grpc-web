@@ -97,10 +97,18 @@ func (w *grpcWebResponse) finishRequest(req *http.Request) {
 func (w *grpcWebResponse) copyTrailersToPayload() {
 	trailers := extractTrailingHeaders(w.headers, w.wrapped.Header())
 	trailerBuffer := new(bytes.Buffer)
-	trailers.Write(trailerBuffer)
 	trailerGrpcDataHeader := []byte{1 << 7, 0, 0, 0, 0} // MSB=1 indicates this is a trailer data frame.
 	binary.BigEndian.PutUint32(trailerGrpcDataHeader[1:5], uint32(trailerBuffer.Len()))
+
+	// first write the header for the trailer
 	w.wrapped.Write(trailerGrpcDataHeader)
+
+	// then manually write the grpc-status trailer, without extra whitespace,
+	// and remove it so it isn't written again by `.Write` with whitespace
+	// see https://github.com/golang/go/blob/master/src/net/http/header.go#L208
+	writeGrpcStatusTrailer(trailers, trailerBuffer)
+
+	trailers.Write(trailerBuffer)
 	w.wrapped.Write(trailerBuffer.Bytes())
 	flushWriter(w.wrapped)
 }
@@ -117,6 +125,23 @@ func extractTrailingHeaders(src http.Header, flushed http.Header) http.Header {
 		keyCase(strings.ToLower),
 	)
 	return th
+}
+
+// writeGrpcStatusTrailer explicitly writes the `grpc-status` header
+// instead of relying on `(http.Header).Write`, which automatically
+// pads with whitespace.
+// See https://github.com/golang/go/blob/master/src/net/http/header.go#L208
+func writeGrpcStatusTrailer(src http.Header, buf *bytes.Buffer) {
+	const headerName = "grpc-status"
+	// `grpc-status` will have been added all lowercase, not in
+	// the `http.CanonicalHeaderKey` form, so we must access the
+	// header map directly instead of `src.Get`.
+	if statuses, ok := src[headerName]; ok && len(statuses) > 0 {
+		status := statuses[0]
+		delete(src, headerName)
+
+		buf.WriteString(headerName + ":" + status + "\r\n")
+	}
 }
 
 // An http.ResponseWriter wrapper that writes base64-encoded payloads. You must call Flush()

@@ -7,9 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	testproto "github.com/improbable-eng/grpc-web/integration_test/go/_proto/improbable/grpcweb/test"
+	testproto "github.com/rigetti/grpc-web/integration_test/go/_proto/improbable/grpcweb/test"
 
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/rigetti/grpc-web/go/grpcweb"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )

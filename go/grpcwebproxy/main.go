@@ -17,10 +17,10 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/mwitkow/go-conntrack"
 	"github.com/mwitkow/grpc-proxy/proxy"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rigetti/grpc-web/go/grpcweb"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -216,7 +216,7 @@ func buildGrpcProxyServer(backendConn *grpc.ClientConn, logger *logrus.Entry) *g
 		delete(mdCopy, "user-agent")
 		// If this header is present in the request from the web client,
 		// the actual connection to the backend will not be established.
-		// https://github.com/improbable-eng/grpc-web/issues/568
+		// https://github.com/rigetti/grpc-web/issues/568
 		delete(mdCopy, "connection")
 		outCtx = metadata.NewOutgoingContext(outCtx, mdCopy)
 		return outCtx, backendConn, nil
