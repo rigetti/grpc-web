@@ -133,8 +133,13 @@ func extractTrailingHeaders(src http.Header, flushed http.Header) http.Header {
 // See https://github.com/golang/go/blob/master/src/net/http/header.go#L208
 func writeGrpcStatusTrailer(src http.Header, buf *bytes.Buffer) {
 	const headerName = "grpc-status"
-	if status := strings.TrimSpace(src.Get(headerName)); status != "" {
-		src.Del(headerName)
+	// `grpc-status` will have been added all lowercase, not in
+	// the `http.CanonicalHeaderKey` form, so we must access the
+	// header map directly instead of `src.Get`.
+	if statuses, ok := src[headerName]; ok && len(statuses) > 0 {
+		status := statuses[0]
+		delete(src, headerName)
+
 		buf.WriteString(headerName + ":" + status + "\r\n")
 	}
 }
